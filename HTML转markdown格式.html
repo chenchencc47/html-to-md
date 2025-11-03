@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML转Markdown工具（带图片下载）</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+        
+        .description {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #7f8c8d;
+        }
+        
+        .upload-area {
+            border: 2px dashed #3498db;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            background-color: #f8fafc;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            background-color: #e8f4fc;
+            border-color: #2980b9;
+        }
+        
+        .upload-area.highlight {
+            background-color: #e1f0fa;
+            border-color: #2980b9;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+        
+        .input-area, .output-area {
+            margin-bottom: 30px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        
+        .button-group {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 12px 25px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .preview-area {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            min-height: 200px;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .tab.active {
+            background-color: #f9f9f9;
+            border-color: #ddd;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .instructions {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .image-list {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        
+        .image-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .image-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .image-preview {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .image-info {
+            flex: 1;
+        }
+        
+        .image-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .image-url {
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .download-info {
+            background-color: #e8f4fc;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .download-info h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .progress {
+            height: 100%;
+            background-color: #3498db;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HTML转Markdown工具</h1>
+        <p class="description">将HTML内容转换为Markdown格式，并自动下载图片到images文件夹</p>
+        
+        <div class="instructions">
+            <h3>使用说明：</h3>
+            <ul>
+                <li>上传HTML文件或在下方输入框中粘贴HTML内容</li>
+                <li>点击"转换"按钮生成Markdown格式</li>
+                <li>点击"下载所有文件"按钮将HTML中的图片和Markdown文件打包下载</li>
+                <li>下载的ZIP文件包含images文件夹和转换后的Markdown文件</li>
+                <li>使用下方的标签页切换预览Markdown结果或原始HTML</li>
+            </ul>
+        </div>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <h3>点击HTML文件上传到这里</h3>
+            <p>支持.html或.htm文件</p>
+            <input type="file" id="fileInput" class="file-input" accept=".html,.htm">
+        </div>
+        
+        <div class="input-area">
+            <h2>输入HTML</h2>
+            <textarea id="htmlInput" placeholder="在此处粘贴或输入HTML内容..."><!DOCTYPE html>
+<html>
+<head>
+    <title>示例页面</title>
+</head>
+<body>
+    <h1>这是一个示例标题</h1>
+    <p>这是一个段落，包含一张图片：</p>
+    <img src="https://via.placeholder.com/150" alt="示例图片">
+    <p>这是另一个段落，包含一个链接到<a href="https://example.com">示例网站</a>。</p>
+    <ul>
+        <li>列表项1</li>
+        <li>列表项2</li>
+        <li>列表项3</li>
+    </ul>
+</body>
+</html></textarea>
+        </div>
+        
+        <div class="button-group">
+            <button id="convertBtn">转换为Markdown</button>
+            <button id="downloadAllBtn">下载所有文件</button>
+            <button id="copyBtn">复制Markdown</button>
+            <button id="clearBtn">清空</button>
+        </div>
+        
+        <div class="progress-bar" id="progressBar">
+            <div class="progress" id="progress"></div>
+        </div>
+        
+        <div id="imageListContainer" style="display: none;">
+            <h2>提取到的图片</h2>
+            <div id="imageList" class="image-list"></div>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="markdown">Markdown预览</div>
+            <div class="tab" data-tab="html">HTML预览</div>
+        </div>
+        
+        <div class="tab-content active" id="markdownTab">
+            <h2>Markdown输出</h2>
+            <textarea id="markdownOutput" placeholder="Markdown转换结果将显示在这里..." readonly></textarea>
+        </div>
+        
+        <div class="tab-content" id="htmlTab">
+            <h2>HTML预览</h2>
+            <div id="htmlPreview" class="preview-area"></div>
+        </div>
+        
+        <div class="download-info">
+            <h3>关于images文件夹</h3>
+            <p>由于浏览器安全限制，无法直接在用户计算机上创建文件夹。本工具将生成一个ZIP文件，其中包含：</p>
+            <ul>
+                <li><strong>converted.md</strong> - 转换后的Markdown文件</li>
+                <li><strong>images/</strong> - 包含所有提取的图片的文件夹</li>
+            </ul>
+            <p>解压ZIP文件后，您将获得完整的文件结构，Markdown文件中的图片链接将正确指向images文件夹中的图片。</p>
+        </div>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <!-- 引入JSZip库用于创建ZIP文件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const htmlInput = document.getElementById('htmlInput');
+            const markdownOutput = document.getElementById('markdownOutput');
+            const htmlPreview = document.getElementById('htmlPreview');
+            const convertBtn = document.getElementById('convertBtn');
+            const downloadAllBtn = document.getElementById('downloadAllBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const statusDiv = document.getElementById('status');
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const imageListContainer = document.getElementById('imageListContainer');
+            const imageList = document.getElementById('imageList');
+            const progressBar = document.getElementById('progressBar');
+            const progress = document.getElementById('progress');
+            
+            let extractedImages = [];
+            let markdownContent = "";
+            
+            // 文件上传处理
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('highlight');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('highlight');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('highlight');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFileUpload(e.target.files[0]);
+                }
+            });
+            
+            function handleFileUpload(file) {
+                if (!file.name.endsWith('.html') && !file.name.endsWith('.htm')) {
+                    showStatus('请上传HTML文件', 'error');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    htmlInput.value = e.target.result;
+                    showStatus(`已加载文件: ${file.name}`, 'success');
+                };
+                reader.readAsText(file);
+            }
+            
+            // 标签页切换
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    
+                    // 移除所有活动标签
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // 激活当前标签
+                    tab.classList.add('active');
+                    document.getElementById(`${tabId}Tab`).classList.add('active');
+                });
+            });
+            
+            // HTML转Markdown函数
+            function htmlToMarkdown(html) {
+                // 创建一个临时div来解析HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // 重置提取的图片数组
+                extractedImages = [];
+                let imageCounter = 1;
+                
+                // 改进的图片提取函数 - 处理各种格式的图片
+                function extractAndReplaceImages(element) {
+                    // 处理常规img标签
+                    const images = element.querySelectorAll('img');
+                    images.forEach(img => {
+                        const src = img.src || img.getAttribute('data-src') || img.getAttribute('srcset');
+                        if (src && isValidImageUrl(src)) {
+                            const imageName = generateImageName(src, imageCounter);
+                            const localPath = `images/${imageName}`;
+                            
+                            extractedImages.push({
+                                originalSrc: src,
+                                localPath: localPath,
+                                name: imageName
+                            });
+                            
+                            // 替换图片为Markdown格式
+                            const alt = img.alt || '';
+                            img.outerHTML = `![${alt}](${localPath})`;
+                            imageCounter++;
+                        }
+                    });
+                    
+                    // 处理CSS背景图片
+                    const elementsWithBg = element.querySelectorAll('*[style*="background-image"]');
+                    elementsWithBg.forEach(el => {
+                        const style = el.getAttribute('style');
+                        const bgMatch = style.match(/background-image\s*:\s*url\(['"]?([^'")]+)['"]?\)/i);
+                        if (bgMatch && bgMatch[1] && isValidImageUrl(bgMatch[1])) {
+                            const imageName = generateImageName(bgMatch[1], imageCounter);
+                            const localPath = `images/${imageName}`;
+                            
+                            extractedImages.push({
+                                originalSrc: bgMatch[1],
+                                localPath: localPath,
+                                name: imageName
+                            });
+                            
+                            // 创建一个图片标记
+                            el.outerHTML = `${el.outerHTML}\n\n![背景图片](${localPath})`;
+                            imageCounter++;
+                        }
+                    });
+                    
+                    // 处理picture元素
+                    const pictures = element.querySelectorAll('picture');
+                    pictures.forEach(picture => {
+                        const sources = picture.querySelectorAll('source');
+                        const img = picture.querySelector('img');
+                        
+                        // 优先使用img标签
+                        if (img && img.src && isValidImageUrl(img.src)) {
+                            const imageName = generateImageName(img.src, imageCounter);
+                            const localPath = `images/${imageName}`;
+                            
+                            extractedImages.push({
+                                originalSrc: img.src,
+                                localPath: localPath,
+                                name: imageName
+                            });
+                            
+                            // 替换整个picture为Markdown图片
+                            const alt = img.alt || '';
+                            picture.outerHTML = `![${alt}](${localPath})`;
+                            imageCounter++;
+                        } 
+                        // 如果没有img标签，尝试使用source标签
+                        else {
+                            for (let source of sources) {
+                                const srcset = source.srcset;
+                                if (srcset) {
+                                    // 取第一个URL
+                                    const firstUrl = srcset.split(',')[0].split(' ')[0];
+                                    if (isValidImageUrl(firstUrl)) {
+                                        const imageName = generateImageName(firstUrl, imageCounter);
+                                        const localPath = `images/${imageName}`;
+                                        
+                                        extractedImages.push({
+                                            originalSrc: firstUrl,
+                                            localPath: localPath,
+                                            name: imageName
+                                        });
+                                        
+                                        picture.outerHTML = `![图片](${localPath})`;
+                                        imageCounter++;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // 提取并替换所有图片
+                extractAndReplaceImages(tempDiv);
+                
+                // 处理标题
+                for (let i = 6; i >= 1; i--) {
+                    const headings = tempDiv.querySelectorAll(`h${i}`);
+                    headings.forEach(heading => {
+                        heading.outerHTML = `${'#'.repeat(i)} ${heading.textContent}\n\n`;
+                    });
+                }
+                
+                // 处理段落
+                const paragraphs = tempDiv.querySelectorAll('p');
+                paragraphs.forEach(p => {
+                    // 保留段落内的格式（如链接、粗体等）
+                    let content = p.innerHTML;
+                    // 转换段落内的链接
+                    content = content.replace(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi, '[$2]($1)');
+                    // 转换粗体
+                    content = content.replace(/<strong>([^<]*)<\/strong>/gi, '**$1**');
+                    content = content.replace(/<b>([^<]*)<\/b>/gi, '**$1**');
+                    // 转换斜体
+                    content = content.replace(/<em>([^<]*)<\/em>/gi, '*$1*');
+                    content = content.replace(/<i>([^<]*)<\/i>/gi, '*$1*');
+                    
+                    p.outerHTML = `${content}\n\n`;
+                });
+                
+                // 处理链接（单独处理，确保没有被段落处理覆盖）
+                const links = tempDiv.querySelectorAll('a');
+                links.forEach(link => {
+                    if (!link.closest('p')) { // 避免重复处理段落内的链接
+                        link.outerHTML = `[${link.textContent}](${link.href})`;
+                    }
+                });
+                
+                // 处理列表
+                const lists = tempDiv.querySelectorAll('ul, ol');
+                lists.forEach(list => {
+                    const isOrdered = list.tagName.toLowerCase() === 'ol';
+                    const items = list.querySelectorAll('li');
+                    let listMarkdown = '';
+                    
+                    items.forEach((item, index) => {
+                        const prefix = isOrdered ? `${index + 1}.` : '-';
+                        listMarkdown += `${prefix} ${item.textContent}\n`;
+                    });
+                    
+                    list.outerHTML = `${listMarkdown}\n`;
+                });
+                
+                // 清理多余的HTML标签
+                let markdown = tempDiv.innerHTML;
+                markdown = markdown.replace(/<[^>]*>/g, '');
+                
+                // 清理多余的空行
+                markdown = markdown.replace(/\n\s*\n\s*\n/g, '\n\n');
+                
+                return markdown.trim();
+            }
+            
+            // 检查是否为有效的图片URL
+            function isValidImageUrl(url) {
+                if (!url) return false;
+                
+                // 排除空URL和data URLs（base64）
+                if (url.startsWith('data:')) return false;
+                if (url.trim() === '') return false;
+                
+                // 检查常见的图片扩展名
+                const imageExtensions = /\.(jpeg|jpg|gif|png|webp|svg|bmp|ico|tiff|tif)(\?.*)?$/i;
+                return imageExtensions.test(url) || 
+                       url.includes('image') || 
+                       url.includes('img') || 
+                       url.includes('picture') ||
+                       url.includes('photo') ||
+                       url.includes('gallery');
+            }
+            
+            // 生成图片名称
+            function generateImageName(src, counter) {
+                // 尝试从URL中提取有意义的文件名
+                const urlParts = src.split('/');
+                let originalName = urlParts[urlParts.length - 1].split('?')[0];
+                
+                // 如果原始文件名有效且包含扩展名，使用它
+                if (originalName && originalName.includes('.') && 
+                    originalName.length < 50 && // 避免过长的文件名
+                    !originalName.includes('%')) { // 避免URL编码的文件名
+                    return originalName;
+                }
+                
+                // 否则使用生成的名称
+                const extension = getImageExtension(src);
+                return `image_${counter}.${extension}`;
+            }
+            
+            // 获取图片扩展名
+            function getImageExtension(src) {
+                // 尝试从URL中提取扩展名
+                const match = src.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp|ico|tiff|tif)/i);
+                if (match) return match[1].toLowerCase();
+                
+                // 尝试从URL路径中提取
+                const pathMatch = src.match(/\/([^\/?]+)\?|$/);
+                if (pathMatch && pathMatch[1]) {
+                    const nameMatch = pathMatch[1].match(/\.(jpeg|jpg|gif|png|webp|svg|bmp|ico|tiff|tif)/i);
+                    if (nameMatch) return nameMatch[1].toLowerCase();
+                }
+                
+                // 如果无法确定，默认使用jpg
+                return 'jpg';
+            }
+            
+            // 显示状态信息
+            function showStatus(message, type) {
+                statusDiv.textContent = message;
+                statusDiv.className = `status ${type}`;
+                
+                // 5秒后自动隐藏状态信息
+                setTimeout(() => {
+                    statusDiv.textContent = '';
+                    statusDiv.className = 'status';
+                }, 5000);
+            }
+            
+            // 更新图片列表
+            function updateImageList() {
+                imageList.innerHTML = '';
+                
+                if (extractedImages.length === 0) {
+                    imageListContainer.style.display = 'none';
+                    return;
+                }
+                
+                imageListContainer.style.display = 'block';
+                
+                extractedImages.forEach((image, index) => {
+                    const imageItem = document.createElement('div');
+                    imageItem.className = 'image-item';
+                    
+                    imageItem.innerHTML = `
+                        <img src="${image.originalSrc}" alt="${image.name}" class="image-preview" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjBGMEYwIi8+CjxwYXRoIGQ9Ik0zMCAyMEMzMCAyMi4yMDkxIDI4LjIwOTEgMjQgMjYgMjRDMjMuNzkwOSAyNCAyMiAyMi4yMDkxIDIyIDIwQzIyIDE3Ljc5MDkgMjMuNzkwOSAxNiAyNiAxNkMyOC4yMDkxIDE2IDMwIDE3Ljc5MDkgMzAgMjBaIiBmaWxsPSIjQzRDNEM0Ii8+CjxwYXRoIGQ9Ik0zNiAzNEgxNEMxMi44OTU0IDM0IDEyIDMzLjEwNDYgMTIgMzJWMThDMTIgMTYuODk1NCAxMi44OTU0IDE2IDE0IDE2SDM2QzM3LjEwNDYgMTYgMzggMTYuODk1NCAzOCAxOFYzMkMzOCAzMy4xMDQ2IDM3LjEwNDYgMzQgMzYgMzRaIiBzdHJva2U9IiNDNEM0QzQiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K'">
+                        <div class="image-info">
+                            <div class="image-name">${image.name} (图片 ${index + 1})</div>
+                            <div class="image-url">原始URL: ${image.originalSrc}</div>
+                            <div class="image-url">本地路径: ${image.localPath}</div>
+                        </div>
+                    `;
+                    
+                    imageList.appendChild(imageItem);
+                });
+            }
+            
+            // 转换按钮点击事件
+            convertBtn.addEventListener('click', () => {
+                const html = htmlInput.value.trim();
+                
+                if (!html) {
+                    showStatus('请输入HTML内容', 'error');
+                    return;
+                }
+                
+                markdownContent = htmlToMarkdown(html);
+                markdownOutput.value = markdownContent;
+                
+                // 更新HTML预览
+                htmlPreview.innerHTML = html;
+                
+                // 更新图片列表
+                updateImageList();
+                
+                showStatus(`转换完成！找到 ${extractedImages.length} 张图片`, 'success');
+            });
+            
+            // 下载所有文件按钮点击事件
+            downloadAllBtn.addEventListener('click', async () => {
+                if (!markdownContent) {
+                    showStatus('请先转换HTML内容', 'error');
+                    return;
+                }
+                
+                if (extractedImages.length === 0) {
+                    showStatus('没有找到可下载的图片', 'error');
+                    return;
+                }
+                
+                showStatus('正在准备下载文件...', 'info');
+                progressBar.style.display = 'block';
+                progress.style.width = '0%';
+                
+                try {
+                    const zip = new JSZip();
+                    
+                    // 添加Markdown文件
+                    zip.file("converted.md", markdownContent);
+                    
+                    // 创建images文件夹
+                    const imagesFolder = zip.folder("images");
+                    
+                    // 下载并添加图片
+                    let successCount = 0;
+                    let failedCount = 0;
+                    
+                    for (let i = 0; i < extractedImages.length; i++) {
+                        const image = extractedImages[i];
+                        
+                        try {
+                            // 更新进度
+                            const progressPercent = ((i + 1) / extractedImages.length) * 100;
+                            progress.style.width = `${progressPercent}%`;
+                            
+                            // 使用fetch获取图片
+                            const response = await fetch(image.originalSrc, {
+                                mode: 'cors',
+                                credentials: 'omit'
+                            });
+                            
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            
+                            const blob = await response.blob();
+                            
+                            // 检查是否为有效的图片
+                            if (blob.type.startsWith('image/') && blob.size > 0) {
+                                imagesFolder.file(image.name, blob);
+                                successCount++;
+                                showStatus(`正在下载图片 (${successCount}/${extractedImages.length})...`, 'info');
+                            } else {
+                                throw new Error('无效的图片数据');
+                            }
+                        } catch (error) {
+                            console.error(`下载图片失败: ${image.originalSrc}`, error);
+                            failedCount++;
+                            showStatus(`部分图片下载失败: ${image.name}`, 'error');
+                        }
+                    }
+                    
+                    // 生成ZIP文件
+                    const zipBlob = await zip.generateAsync({type: "blob"});
+                    
+                    // 下载ZIP文件
+                    saveAs(zipBlob, "html-to-markdown-conversion.zip");
+                    
+                    // 隐藏进度条
+                    progressBar.style.display = 'none';
+                    
+                    let statusMsg = `下载完成！成功下载 ${successCount} 张图片到images文件夹`;
+                    if (failedCount > 0) {
+                        statusMsg += `，${failedCount} 张图片下载失败`;
+                    }
+                    showStatus(statusMsg, failedCount > 0 ? 'error' : 'success');
+                } catch (error) {
+                    progressBar.style.display = 'none';
+                    showStatus('创建ZIP文件时出错: ' + error.message, 'error');
+                }
+            });
+            
+            // 复制按钮点击事件
+            copyBtn.addEventListener('click', () => {
+                const markdown = markdownOutput.value;
+                
+                if (!markdown) {
+                    showStatus('没有可复制的内容', 'error');
+                    return;
+                }
+                
+                markdownOutput.select();
+                document.execCommand('copy');
+                
+                showStatus('Markdown内容已复制到剪贴板', 'success');
+            });
+            
+            // 清空按钮点击事件
+            clearBtn.addEventListener('click', () => {
+                htmlInput.value = '';
+                markdownOutput.value = '';
+                htmlPreview.innerHTML = '';
+                statusDiv.textContent = '';
+                statusDiv.className = 'status';
+                imageListContainer.style.display = 'none';
+                progressBar.style.display = 'none';
+                extractedImages = [];
+                markdownContent = "";
+            });
+        });
+    </script>
+</body>
+</html>
