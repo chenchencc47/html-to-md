@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML转Markdown工具（带图片下载）</title>
+    <title>HTML转Markdown工具（带图片下载和代码语言支持）</title>
     <style>
         * {
             box-sizing: border-box;
@@ -270,12 +270,36 @@
             width: 0%;
             transition: width 0.3s;
         }
+        
+        .code-block {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .language-info {
+            background-color: #e8f4fc;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .language-info h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>HTML转Markdown工具</h1>
-        <p class="description">将HTML内容转换为Markdown格式，并自动下载图片到images文件夹</p>
+        <p class="description">将HTML内容转换为Markdown格式，自动下载图片到images文件夹，并支持代码语言标识</p>
         
         <div class="instructions">
             <h3>使用说明：</h3>
@@ -285,6 +309,18 @@
                 <li>点击"下载所有文件"按钮将HTML中的图片和Markdown文件打包下载</li>
                 <li>下载的ZIP文件包含images文件夹和转换后的Markdown文件</li>
                 <li>使用下方的标签页切换预览Markdown结果或原始HTML</li>
+                <li>代码块会自动检测语言并在Markdown中正确标识（支持language-xxx类名）</li>
+            </ul>
+        </div>
+        
+        <div class="language-info">
+            <h3>关于代码语言支持</h3>
+            <p>本工具会自动检测HTML中代码块的语言，并在生成的Markdown中正确标识。支持以下方式：</p>
+            <ul>
+                <li><strong>class="language-xxx"</strong> - 例如: <code>&lt;code class="language-javascript"&gt;</code></li>
+                <li><strong>class="lang-xxx"</strong> - 例如: <code>&lt;code class="lang-python"&gt;</code></li>
+                <li><strong>class="xxx"</strong> - 例如: <code>&lt;code class="java"&gt;</code></li>
+                <li>如果无法检测到语言，将使用空语言标识</li>
             </ul>
         </div>
         
@@ -312,6 +348,21 @@
         <li>列表项2</li>
         <li>列表项3</li>
     </ul>
+    <h2>代码示例</h2>
+    <pre><code class="language-javascript">// 这是一个JavaScript代码示例
+function helloWorld() {
+    console.log("Hello, World!");
+    return true;
+}</code></pre>
+    <pre><code class="language-python"># 这是一个Python代码示例
+def hello_world():
+    print("Hello, World!")
+    return True</code></pre>
+    <pre><code class="html">&lt;!-- 这是一个HTML代码示例 --&gt;
+&lt;div class="container"&gt;
+    &lt;h1&gt;标题&lt;/h1&gt;
+    &lt;p&gt;段落内容&lt;/p&gt;
+&lt;/div&gt;</code></pre>
 </body>
 </html></textarea>
         </div>
@@ -444,6 +495,43 @@
                 });
             });
             
+            // 从class属性中提取代码语言
+            function extractCodeLanguage(element) {
+                const classList = element.classList;
+                if (!classList || classList.length === 0) return '';
+                
+                // 检查language-xxx模式
+                for (let cls of classList) {
+                    if (cls.startsWith('language-')) {
+                        return cls.substring(9);
+                    }
+                }
+                
+                // 检查lang-xxx模式
+                for (let cls of classList) {
+                    if (cls.startsWith('lang-')) {
+                        return cls.substring(5);
+                    }
+                }
+                
+                // 检查常见编程语言类名
+                const commonLanguages = [
+                    'javascript', 'js', 'typescript', 'ts', 'python', 'py', 
+                    'java', 'cpp', 'c++', 'c', 'csharp', 'cs', 'php', 
+                    'ruby', 'rb', 'go', 'rust', 'rs', 'swift', 
+                    'kotlin', 'scala', 'html', 'css', 'xml', 'json',
+                    'markdown', 'md', 'sql', 'bash', 'shell', 'yaml', 'yml'
+                ];
+                
+                for (let cls of classList) {
+                    if (commonLanguages.includes(cls.toLowerCase())) {
+                        return cls.toLowerCase();
+                    }
+                }
+                
+                return '';
+            }
+            
             // HTML转Markdown函数
             function htmlToMarkdown(html) {
                 // 创建一个临时div来解析HTML
@@ -550,6 +638,52 @@
                 // 提取并替换所有图片
                 extractAndReplaceImages(tempDiv);
                 
+                // 处理代码块 - 改进的部分
+                const preElements = tempDiv.querySelectorAll('pre');
+                preElements.forEach(pre => {
+                    // 获取代码内容，保留格式
+                    let codeContent = pre.innerHTML;
+                    let language = '';
+                    
+                    // 如果有code标签，提取其内容
+                    const codeElement = pre.querySelector('code');
+                    if (codeElement) {
+                        codeContent = codeElement.innerHTML;
+                        // 提取代码语言
+                        language = extractCodeLanguage(codeElement);
+                    }
+                    
+                    // 如果pre元素有语言类但code元素没有
+                    if (!language) {
+                        language = extractCodeLanguage(pre);
+                    }
+                    
+                    // 清理HTML实体
+                    codeContent = codeContent.replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+                                             .replace(/&amp;/g, '&').replace(/&quot;/g, '"')
+                                             .replace(/&#39;/g, "'");
+                    
+                    // 保留缩进和格式
+                    codeContent = codeContent.replace(/<br\s*\/?>/gi, '\n');
+                    
+                    // 清理其他HTML标签
+                    codeContent = codeContent.replace(/<[^>]*>/g, '');
+                    
+                    // 用代码块包裹，添加语言标识
+                    const languageMark = language ? language : '';
+                    pre.outerHTML = '\n```' + languageMark + '\n' + codeContent.trim() + '\n```\n\n';
+                });
+                
+                // 处理内联代码
+                const codeElements = tempDiv.querySelectorAll('code');
+                codeElements.forEach(code => {
+                    // 如果不在pre标签内，则视为内联代码
+                    if (!code.closest('pre')) {
+                        let codeContent = code.textContent || code.innerText;
+                        code.outerHTML = '`' + codeContent + '`';
+                    }
+                });
+                
                 // 处理标题
                 for (let i = 6; i >= 1; i--) {
                     const headings = tempDiv.querySelectorAll(`h${i}`);
@@ -596,6 +730,17 @@
                     });
                     
                     list.outerHTML = `${listMarkdown}\n`;
+                });
+                
+                // 处理块引用
+                const blockquotes = tempDiv.querySelectorAll('blockquote');
+                blockquotes.forEach(blockquote => {
+                    let content = blockquote.innerHTML;
+                    // 清理HTML标签
+                    content = content.replace(/<[^>]*>/g, '');
+                    // 添加块引用标记
+                    content = content.split('\n').map(line => `> ${line}`).join('\n');
+                    blockquote.outerHTML = `${content}\n\n`;
                 });
                 
                 // 清理多余的HTML标签
